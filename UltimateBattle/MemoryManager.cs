@@ -1,16 +1,14 @@
-﻿using System.Collections;
-
-namespace UltimateBattle;
+﻿namespace UltimateBattle;
 
 public class MemoryManager
 {
     private readonly int _blocks;
-    private readonly List<bool> _freeBlockTable;
-    private readonly List<TranslationInfo> _translationTable;
-    private readonly PhysicalMemory _physicalMemory;
+    private readonly bool[] _freeBlockTable;
     private readonly int _pageSize;
-    private readonly SwapSpace _swapSpace;
+    private readonly PhysicalMemory _physicalMemory;
     private readonly Queue<int> _swapQueue;
+    private readonly SwapSpace _swapSpace;
+    private readonly TranslationInfo[] _translationTable;
 
     public MemoryManager(PhysicalMemory physicalMemory, int pageSize, SwapSpace swapSpace)
     {
@@ -22,29 +20,25 @@ public class MemoryManager
         var swapSize = swapSpace.Size;
         var swapBlocks = swapSpace.Size / pageSize;
         _blocks = physicalBlocks + swapBlocks;
-        _freeBlockTable = new List<bool>(_blocks);
-        _translationTable = new List<TranslationInfo>(_blocks);
-        for (int i = 0; i < _blocks; i++)
-        {
-            _freeBlockTable.Add(true);
-        }
-
+        _freeBlockTable = new bool[_blocks];
+        _translationTable = new TranslationInfo[_blocks];
+        Array.Fill(_freeBlockTable, true);
         for (int i = 0; i < physicalBlocks; i++)
         {
-            _translationTable.Add(new TranslationInfo
+            _translationTable[i] = new TranslationInfo
             {
                 Position = i,
                 MemoryType = MemoryType.Physical
-            });
+            };
         }
 
         for (int i = 0; i < swapBlocks; i++)
         {
-            _translationTable.Add(new TranslationInfo
+            _translationTable[i + physicalBlocks] = new TranslationInfo
             {
                 Position = i,
                 MemoryType = MemoryType.Swap
-            });
+            };
         }
 
         var queueCapacity = Math.Min(physicalBlocks, swapBlocks);
@@ -73,8 +67,8 @@ public class MemoryManager
     public int SwapBlock(int blockToSwapIn)
     {
         var blockToSwapOut = _swapQueue.Dequeue();
-        var blockToSwapOutInfo = _translationTable[blockToSwapOut];
-        var blockToSwapInInfo = _translationTable[blockToSwapIn];
+        ref var blockToSwapOutInfo = ref _translationTable[blockToSwapOut];
+        ref var blockToSwapInInfo = ref _translationTable[blockToSwapIn];
         byte[] temp = new byte[_pageSize];
         var spanToSwapOut = _physicalMemory.GetSpan(blockToSwapOutInfo.Position * _pageSize, _pageSize);
         var spanToSwapIn = _swapSpace.GetSpan(blockToSwapInInfo.Position * _pageSize, _pageSize);
@@ -82,9 +76,8 @@ public class MemoryManager
         spanToSwapIn.CopyTo(spanToSwapOut);
         temp.CopyTo(spanToSwapIn);
         _swapQueue.Enqueue(blockToSwapIn);
-        (_translationTable[blockToSwapOut], _translationTable[blockToSwapIn]) =
-            (_translationTable[blockToSwapIn], _translationTable[blockToSwapOut]);
-        return blockToSwapOutInfo.Position;
+        (blockToSwapOutInfo, blockToSwapInInfo) = (blockToSwapInInfo, blockToSwapOutInfo);
+        return blockToSwapInInfo.Position;
     }
 
     public T Get<T>(int logicalAddress, List<int> pageTable) where T : struct
