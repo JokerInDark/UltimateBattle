@@ -12,7 +12,7 @@ public class TestTool : ITask
         while (true)
         {
             if (Process.Disposed) yield break;
-            Console.Write("[TestTool] Available commands: allocate, free, break, pause, exit: ");
+            Console.Write("[TestTool] Available commands: allocate, free, break, fill, pause, exit: ");
             var command = Console.ReadLine();
             switch (command)
             {
@@ -35,6 +35,21 @@ public class TestTool : ITask
                 case "break":
                     Debugger.Break();
                     break;
+                case "fill":
+                {
+                    Console.Write("Input address to start filling: ");
+                    int address = int.Parse(Console.ReadLine()!);
+                    Console.Write("Input length to fill int: ");
+                    int length = int.Parse(Console.ReadLine()!);
+                    Console.Write("Input int data to fill: ");
+                    int data = int.Parse(Console.ReadLine()!);
+                    for (int i = 0; i < length; i++)
+                    {
+                        Process.Set(address + i * 4, data);
+                    }
+
+                    break;
+                }
                 case "pause":
                     yield return null;
                     break;

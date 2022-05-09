@@ -13,7 +13,10 @@ internal class Program
         PhysicalMemory physicalMemory = new(memorySize);
         Console.Write("Input page size: ");
         var pageSize = int.Parse(Console.ReadLine()!);
-        _memoryManager = new MemoryManager(physicalMemory, pageSize);
+        Console.Write("Input swap size: ");
+        var swapSize = int.Parse(Console.ReadLine()!);
+        SwapSpace swapSpace = new(swapSize);
+        _memoryManager = new MemoryManager(physicalMemory, pageSize,swapSpace);
         while (true)
         {
             Console.Write("[Main] Available commands: start, test, task, break, exit: ");

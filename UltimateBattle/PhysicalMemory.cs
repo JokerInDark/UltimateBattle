@@ -20,4 +20,9 @@ public class PhysicalMemory
         var cast = MemoryMarshal.Cast<byte, T>(span);
         return ref cast.GetPinnableReference();
     }
+
+    public Span<byte> GetSpan(int address, int length)
+    {
+        return new Span<byte>(Memory, address, length);
+    }
 }
